@@ -1,0 +1,39 @@
+name: Deploy to Staging (Dev)
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/hypergoat-staff-dev .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          gcloud auth configure-docker
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/hypergoat-staff-dev
+
+      - name: Deploy to Cloud Run (Dev)
+        run: |
+          gcloud run deploy hypergoat-staff-dev \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/hypergoat-staff-dev \
+            --region ${{ secrets.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --quiet
