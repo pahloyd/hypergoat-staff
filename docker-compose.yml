@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    depends_on:
+      - firebase
+
+  firebase:
+    image: node:18-alpine
+    container_name: firebase-emulator
+    working_dir: /app
+    volumes:
+      - ./firebase.json:/app/firebase.json
+      - ./emulators:/app/emulators
+    command: >
+      sh -c "npm install -g firebase-tools &&
+             firebase emulators:start --project hypergoat-staff-dev --only auth"
+    ports:
+      - "9099:9099"
